@@ -3,6 +3,7 @@ import whisperx
 import torch
 import re
 import math
+from typing import TypedDict, List, Optional
 
 def clean_lyrics_text(text: str) -> str:
     """Entfernt Metadaten wie [Chorus] oder (x2), die WhisperX verwirren könnten."""
@@ -10,10 +11,24 @@ def clean_lyrics_text(text: str) -> str:
     text = re.sub(r'\(.*?\)', '', text)
     return text.strip()
 
+class WordData(TypedDict, total=False):
+    """Represents a single aligned word."""
+    word: str
+    start: float
+    end: float
+    score: float
+
+class SegmentData(TypedDict, total=False):
+    """Represents a synchronized text segment from WhisperX."""
+    text: str
+    start: float
+    end: float
+    words: List[WordData]
+
 # please document the dictionary fully!!! (typesafe)
 class AlignmentResult:
     """Represents the result of the alignment process."""
-    def __init__(self, segments: list[dict]):
+    def __init__(self, segments: list[SegmentData]):
         self.segments = segments
 
     def _format_time(self, seconds: float, separator: str = ",") -> str:
@@ -201,7 +216,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             f.write("E\n")
 
 
-def align(lyrics: Lyrics, audio_file: str, language_code: str = "en") -> AlignmentResult:
+def align(lyrics: Lyrics, audio_file: str, language_code: str = "en", offset_fix: bool = True) -> AlignmentResult:
     """Aligns the lyrics with the audio file word by word."""
     if not lyrics.syncedLyrics or not lyrics.plainLyrics:
         raise ValueError("No alignment possible: missing synced lyrics")
@@ -218,6 +233,35 @@ def align(lyrics: Lyrics, audio_file: str, language_code: str = "en") -> Alignme
     print(f"Loading WhisperX model for language '{language_code}' on device '{device}'...")
 
     model_a, metadata = whisperx.load_align_model(language_code=language_code, device=device)
+
+    if offset_fix:
+        print("Attempting to determine offset between LRCLIB timings and actual singing in the audio...")
+        try:
+            compute_type = "float16" if device == "cuda" else "int8"
+            transcribe_model = whisperx.load_model("tiny", device=device, compute_type=compute_type)
+            audio_snippet = audio[:16000 * 15] 
+            offset_result = transcribe_model.transcribe(audio_snippet)
+            
+            if offset_result and offset_result.get("segments"):
+                actual_start = offset_result["segments"][0]["start"]
+                expected_start = next((s["start"] for s in whisperx_segments if s["text"].strip()), None)
+                
+                if expected_start is not None:
+                    offset = actual_start - expected_start
+                    print(f"Offset detected: {offset:.3f}s (Expected: {expected_start:.3f}s, Actual: {actual_start:.3f}s). Adjusting lyrics...")
+                    
+                    for s in whisperx_segments:
+                        s["start"] = max(0.0, s["start"] + offset)
+                        s["end"] = max(0.0, s["end"] + offset)
+            else:
+                print("No singing found in the first 60 seconds. Skipping offset fix.")
+                
+            del transcribe_model
+            if device == "cuda":
+                torch.cuda.empty_cache()
+                
+        except Exception as e:
+            print(f"Failed to determine offset: {e}")
 
     result = whisperx.align(
         whisperx_segments, 

@@ -229,10 +229,13 @@ def get_appdata_dir() -> Path:
 
 @cli.command(name="vimport")
 @click.option("--youtube", required=True, help="YouTube video link")
-@click.option("--lang", default="en", help="Language for transcription (default: en)")
 @click.option("--raw", is_flag=True, help="Skip alignment and just use the original timings from LRCLIB")
 @click.option("--json", "json_output", is_flag=True, help="Output results in JSON format")
-def vimport(youtube: str, lang: str, raw: bool, json_output: bool):
+@click.option("--lang", required=False, help="Language code for the song (e.g. en, de, fr). Used for better alignment and transcription.")
+@click.option("--infer-lang", is_flag=True, default=False, help="Automatically infer language from YouTube title using Google Gemini API (requires --gemini-api-key), experimental")
+@click.option("--offset-fix", is_flag=True, default=True, help="Automatically detect and fix global timing offset between LRCLIB and actual singing in the audio (can be inaccurate for very long intros or outros)")
+@click.option("--gemini-api-key", envvar="GEMINI_API_KEY", required=False, help="API key for Google Gemini API (can also be set via GEMINI_API_KEY environment variable), used to extract song info from YouTube title")
+def vimport(youtube: str, raw: bool, json_output: bool, lang: str | None, infer_lang: bool, offset_fix: bool, gemini_api_key: str | None):
     """Import a song for vibes with a single command using a youtube link."""
     client = get_client()
 
@@ -256,8 +259,18 @@ def vimport(youtube: str, lang: str, raw: bool, json_output: bool):
             
         if not json_output:
             click.secho(f"Found video: {video_title}", fg="green")
-            click.secho(f"Searching for \"{video_title}\"...", fg="cyan")
+
+        if gemini_api_key:
+            click.secho("Extracting song info from video title using Google Gemini API...", fg="cyan")
+            from vibes_song_importer.videotitle import get_song_info_from_title
+            song_info = get_song_info_from_title(video_title, api_key=gemini_api_key)
+            if song_info:
+                video_title = f"{song_info.interpret} - {song_info.song_name}"
+                if infer_lang and not lang and song_info.language_code:
+                    lang = song_info.language_code
             
+        click.secho(f"Searching for \"{video_title}\"...", fg="cyan")
+
         results = client.search_lyrics(q=video_title)
         if not results:
             raise Exception("No results found for the given query.")
@@ -306,7 +319,7 @@ def vimport(youtube: str, lang: str, raw: bool, json_output: bool):
 
             if not json_output:
                 click.secho("Transcribing audio...", fg="cyan")
-            result = align(lyrics, vocals_path, language_code=lang)
+            result = align(lyrics, vocals_path, language_code=lang if lang else "en", offset_fix=offset_fix)
             
         result.save_to_ultrastar_file(str(output_txt), artist=lyrics.artistName, title=lyrics.trackName, audio="audio.mp3", video="video.mp4", cover=cover_filename)
         

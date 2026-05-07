@@ -84,8 +84,10 @@ Finished! Output saved to <Path to output file>
 This will extract the audio and video from the provided youtube link, search for the song on lrclib using the video title, extract the vocals using demucs, transcribe them and finally save the results to the vibes output directory. This will also automatically fetch a cover image for the song and save it to the output directory.
 
 ```bash
-simport vimport --youtube <YouTube video link> [--lang <Language for transcription (default: en)>] [--raw] [--json]
+simport vimport --youtube <YouTube video link> [--lang <Language for transcription (default: en)>] [--raw] [--json] [--gemini-api-key <API key for Google Gemini API>]
 ```
+
+_Note_: The gemini api key can also be set via GEMINI_API_KEY environment variable and is used to extract song info from YouTube title. This can be helpful if the video title does not match the song name and artist name, which can lead to better search results on lrclib.net and therefore better transcriptions.
 
 _Response_:
 

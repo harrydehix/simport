@@ -204,6 +204,12 @@ class LRCLibClient:
             
             if "-" in clean_q:
                 possible_artist_name, possible_track_name = map(str.strip, clean_q.split("-", 1))
+                possible_track_name = possible_track_name.replace("\"", "")
+                possible_artist_name = possible_artist_name.replace("\"", "")
+                possible_track_name = possible_track_name.replace("“", "").replace("”", "")
+                possible_artist_name = possible_artist_name.replace("“", "").replace("”", "")
+                possible_track_name = possible_track_name.replace(" x ", "").replace(" & ", "")
+                possible_artist_name = possible_artist_name.replace(" x ", "").replace(" & ", "")
                 result = self.search_lyrics(track_name=possible_track_name, artist_name=possible_artist_name)
                 if len(result) == 0:
                     result = self.search_lyrics(track_name=possible_artist_name, artist_name=possible_track_name)
