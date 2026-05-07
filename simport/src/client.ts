@@ -84,12 +84,12 @@ type SongImportOptions = {
  * Gets the lyrics of a song, that is available on `lrclib.net` and optionally synchronizes it to the passed audio file. The synchronization
  * result is saved to the specified output file in either .srt, .vtt, .ass or .txt format.
  */
-export async function importSong(
+export async function transcribeSong(
     options: SongImportOptions,
 ): Promise<SongImportResult> {
     try {
         const args = [
-            "import",
+            "transcribe",
             "--file",
             options.file,
             "--output",
@@ -121,7 +121,52 @@ export async function importSong(
             error:
                 error.stderr?.trim() ||
                 error.message ||
-                "Failed to import song",
+                "Failed to transcribe song",
+        };
+    }
+}
+
+type VibesImportOptions = {
+    /** The YouTube video link to import the song from. */
+    youtube: string;
+    /** The language of the lyrics to transcribe. Optional, default is `en`. */
+    lang?: string;
+    /** Whether to skip alignment and just use the original timings from LRCLib. */
+    raw?: boolean;
+};
+
+/**
+ * Extracts audio and video from a youtube link, searches for the song on lrclib using the video title,
+ * transcribes it using extracted vocals, and saves the results along with a cover image to the vibes output directory.
+ */
+export async function importSongForVibes(
+    options: VibesImportOptions,
+): Promise<SongImportResult> {
+    try {
+        const args = ["vimport", "--youtube", options.youtube, "--json"];
+
+        if (options.lang) args.push("--lang", options.lang);
+        if (options.raw) args.push("--raw");
+
+        const { stdout } = await execFileAsync("simport", args);
+
+        return JSON.parse(stdout.trim());
+    } catch (error: any) {
+        // If simport exited with an error code but still produced JSON output, try to parse it
+        if (error.stdout) {
+            try {
+                return JSON.parse(error.stdout.trim());
+            } catch (e) {
+                // Ignore parse errors from stderr fallback
+            }
+        }
+
+        return {
+            success: false,
+            error:
+                error.stderr?.trim() ||
+                error.message ||
+                "Failed to import song for vibes",
         };
     }
 }

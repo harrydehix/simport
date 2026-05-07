@@ -240,7 +240,8 @@ async function hasCuda(): Promise<boolean> {
 async function ensurePyTorch(projectRoot: string): Promise<void> {
     console.log("🔄 Checking PyTorch requirements...");
     const platform = os.platform();
-    let installCmd = "uv pip install torch torchvision torchaudio";
+    let installCmd =
+        'uv pip install "torch~=2.6.0" "torchvision~=0.21.0" "torchaudio~=2.6.0"';
 
     if (platform === "darwin") {
         // Mac: Always Default / Pip
@@ -283,34 +284,38 @@ async function ensurePyTorch(projectRoot: string): Promise<void> {
  * Ensures that simport is installed and ready to use.
  * This function handles its prerequisites (ffmpeg, uv, PyTorch) and registers the CLI tool.
  *
- * @param userDataPath The path obtained from electron's `app.getPath('userData')` or manually provided.
+ * @param projectRoot The root directory for the simport project.
+ * @param forceReinstall Whether to force a reinstall of the dependencies.
  */
 export async function ensureSimportInstalled(
-    userDataPath?: string,
+    projectRoot?: string,
     forceReinstall = false,
 ): Promise<void> {
-    let appDataPath = userDataPath;
-
-    if (!appDataPath) {
+    if (!projectRoot) {
         const home = os.homedir();
         if (os.platform() === "win32" && process.env.APPDATA) {
-            appDataPath = path.join(process.env.APPDATA, "vibes");
+            projectRoot = path.join(process.env.APPDATA, "vibes", "simport");
         } else if (os.platform() === "darwin") {
-            appDataPath = path.join(
+            projectRoot = path.join(
                 home,
                 "Library",
                 "Application Support",
                 "vibes",
+                "simport",
             );
         } else {
-            appDataPath = path.join(home, ".local", "share", "vibes");
+            projectRoot = path.join(
+                home,
+                ".local",
+                "share",
+                "vibes",
+                "simport",
+            );
         }
     }
 
-    const projectRoot = path.join(appDataPath, "simport");
-
     console.log(
-        `🚀 Starting simport installation process in ${projectRoot}...`,
+        `🚀 Starting simport installation process in ${path.resolve(projectRoot)}...`,
     );
 
     try {
@@ -350,7 +355,7 @@ export async function ensureSimportInstalled(
         }
 
         // 1. Ensure prerequisites
-        await ensureFfmpeg(appDataPath);
+        await ensureFfmpeg(path.join(projectRoot, ".."));
         await ensureUv();
 
         // 2. Check if simport is already installed via uv
@@ -359,21 +364,36 @@ export async function ensureSimportInstalled(
             // Optionally run an update here, e.g., uv tool upgrade simport
             return;
         }
-
-        // Ensure pyproject is synced and PyTorch applies correctly
-        await ensurePyTorch(projectRoot);
-
         console.log("🔄 Installing simport via uv tool...");
 
         // 3. Install the tool using uv in editable mode
-        const installCmd = `uv tool install --python 3.12 --editable . --reinstall`;
+
+        let installCmd = `uv tool install --python 3.12 --editable .`;
+
+        // Ensure CUDA passes through to the tool installation environment!
+        const platform = os.platform();
+        if (platform === "win32" && (await hasCuda())) {
+            installCmd +=
+                " --extra-index-url https://download.pytorch.org/whl/cu126 --index-strategy unsafe-best-match";
+        } else if (platform === "linux" && !(await hasCuda())) {
+            installCmd +=
+                " --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match";
+        }
+
+        if (forceReinstall) {
+            installCmd += " --reinstall";
+        }
+
         const { stdout, stderr } = await execAsync(installCmd, {
-            cwd: projectRoot,
+            cwd: projectRoot, // The directory containing pyproject.toml
         });
 
         if (stderr && !stderr.includes("Successfully installed")) {
             console.warn(`⚠️ Warning during uv installation: ${stderr}`);
         }
+
+        // Ensure pyproject is synced and PyTorch applies correctly
+        await ensurePyTorch(projectRoot);
 
         console.log(
             "✅ simport installed successfully. You can now use the simport CLI!",

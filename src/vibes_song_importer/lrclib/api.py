@@ -1,4 +1,5 @@
 import requests
+import re
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
 
@@ -165,7 +166,7 @@ class LRCLibClient:
                       q: Optional[str] = None, 
                       track_name: Optional[str] = None, 
                       artist_name: Optional[str] = None, 
-                      album_name: Optional[str] = None) -> List[Lyrics]:
+                      album_name: Optional[str] = None, extended_query_search: bool = True) -> List[Lyrics]:
         """
         Searches for lyrics. According to the docs, at least 'q' or 'track_name' MUST be provided.
         Returns a maximum of 20 results.
@@ -180,11 +181,35 @@ class LRCLibClient:
         if album_name: params["album_name"] = album_name
 
         response = self.session.get(f"{self.BASE_URL}/search", params=params)
-        data = self._handle_response(response)
         
+        try:
+            data = self._handle_response(response)
+        except requests.exceptions.HTTPError as e:
+            # If the server crashes on a weird query (e.g. 502/500), we treat it as no results found
+            # so the fallback logic (stripping parentheses/dashes) can try again.
+            if response.status_code >= 500:
+                data = []
+            else:
+                raise e
+        
+        result = []
         if isinstance(data, list):
-            return [Lyrics.from_dict(item) for item in data]
-        return []
+            result = [Lyrics.from_dict(item) for item in data]
+
+        if len(result) == 0 and extended_query_search and q:
+            # remove everything in parentheses to improve search results (e.g. "Song Title (feat. Artist)" -> "Song Title")
+            clean_q = re.sub(r'\s*\([^)]*\)', '', q).strip()
+            clean_q = re.sub(r'\s*\[[^]]*\]', '', clean_q).strip()
+            
+            if "-" in clean_q:
+                possible_artist_name, possible_track_name = map(str.strip, clean_q.split("-", 1))
+                result = self.search_lyrics(track_name=possible_track_name, artist_name=possible_artist_name)
+                if len(result) == 0:
+                    result = self.search_lyrics(track_name=possible_artist_name, artist_name=possible_track_name)
+            elif clean_q != q:
+                result = self.search_lyrics(q=clean_q)
+            
+        return result
 
     def request_challenge(self) -> CryptoChallenge:
         """

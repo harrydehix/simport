@@ -147,7 +147,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 final_line = line_text.strip()
                 f.write(f"Dialogue: 0,{ass_start},{ass_end},Karaoke,,0000,0000,0000,,{final_line}\n")
 
-    def save_to_ultrastar_file(self, file_path: str, artist: str = "Unknown", title: str = "Unknown", audio: str = "audio.mp3"):
+    def save_to_ultrastar_file(self, file_path: str, artist: str = "Unknown", title: str = "Unknown", audio: str | None = None, video: str | None = None, cover: str | None = None):
         """Saves the lyrics in the UltraStar TXT format."""
         bpm = 1500
         ms_per_beat = 10
@@ -155,7 +155,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(f"#TITLE:{title}\n")
             f.write(f"#ARTIST:{artist}\n")
-            f.write(f"#AUDIO:{audio}\n")
+            if audio is not None:
+                f.write(f"#AUDIO:{audio}\n")
+            if video is not None:
+                f.write(f"#VIDEO:{video}\n")
+            if cover is not None:
+                f.write(f"#COVER:{cover}\n")
             f.write(f"#BPM:{bpm}\n")
             f.write(f"#GAP:0\n")
             
