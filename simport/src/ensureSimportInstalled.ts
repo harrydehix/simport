@@ -240,7 +240,7 @@ async function hasCuda(): Promise<boolean> {
 async function ensurePyTorch(projectRoot: string): Promise<void> {
     console.log("🔄 Checking PyTorch requirements...");
     const platform = os.platform();
-    let installCmd = "uv pip install torch torchvision";
+    let installCmd = "uv pip install torch torchvision torchaudio";
 
     if (platform === "darwin") {
         // Mac: Always Default / Pip
@@ -269,8 +269,8 @@ async function ensurePyTorch(projectRoot: string): Promise<void> {
     try {
         // Ensure a virtual environment exists
         await execAsync("uv sync", { cwd: projectRoot });
-        console.log(`Executing: ${installCmd}`);
-        await execAsync(installCmd, { cwd: projectRoot });
+        console.log("✅ UV dependencies installed successfully.");
+        await execAsync(installCmd + " --reinstall", { cwd: projectRoot });
         console.log("✅ PyTorch installed successfully.");
     } catch (error) {
         throw new Error(
@@ -283,43 +283,30 @@ async function ensurePyTorch(projectRoot: string): Promise<void> {
  * Ensures that simport is installed and ready to use.
  * This function handles its prerequisites (ffmpeg, uv, PyTorch) and registers the CLI tool.
  *
- * @param projectRoot The root directory of the vibes-ai-based-import repository (where pyproject.toml is located).
- * @param userDataPath Optional. The path obtained from electron's app.getPath('userData').
+ * @param userDataPath The path obtained from electron's `app.getPath('userData')` or manually provided.
  */
 export async function ensureSimportInstalled(
-    projectRoot?: string,
     userDataPath?: string,
 ): Promise<void> {
-    if (!projectRoot) {
-        if (userDataPath) {
-            projectRoot = path.join(userDataPath, "simport");
+    let appDataPath = userDataPath;
+
+    if (!appDataPath) {
+        const home = os.homedir();
+        if (os.platform() === "win32" && process.env.APPDATA) {
+            appDataPath = path.join(process.env.APPDATA, "vibes");
+        } else if (os.platform() === "darwin") {
+            appDataPath = path.join(
+                home,
+                "Library",
+                "Application Support",
+                "vibes",
+            );
         } else {
-            const home = os.homedir();
-            if (os.platform() === "win32" && process.env.APPDATA) {
-                projectRoot = path.join(
-                    process.env.APPDATA,
-                    "vibes",
-                    "simport",
-                );
-            } else if (os.platform() === "darwin") {
-                projectRoot = path.join(
-                    home,
-                    "Library",
-                    "Application Support",
-                    "vibes",
-                    "simport",
-                );
-            } else {
-                projectRoot = path.join(
-                    home,
-                    ".local",
-                    "share",
-                    "vibes",
-                    "simport",
-                );
-            }
+            appDataPath = path.join(home, ".local", "share", "vibes");
         }
     }
+
+    const projectRoot = path.join(appDataPath, "simport");
 
     console.log(
         `🚀 Starting simport installation process in ${projectRoot}...`,
@@ -362,7 +349,7 @@ export async function ensureSimportInstalled(
         }
 
         // 1. Ensure prerequisites
-        await ensureFfmpeg(userDataPath);
+        await ensureFfmpeg(appDataPath);
         await ensureUv();
 
         // Ensure pyproject is synced and PyTorch applies correctly

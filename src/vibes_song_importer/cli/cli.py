@@ -173,8 +173,10 @@ def import_song(lyrics_id: int, query: str, file: str, output: str, lang: str, r
             result.save_to_vtt_file(output)
         elif output.lower().endswith(".ass"):
             result.save_to_ass_file(output)
+        elif output.lower().endswith(".txt"):
+            result.save_to_ultrastar_file(output, artist=lyrics.artistName, title=lyrics.trackName, audio=os.path.relpath(file, output))
         else:
-            raise Exception("Unsupported output format. Please use .srt, .vtt or .ass extension.")
+            raise Exception("Unsupported output format. Please use .srt, .vtt, .ass or .txt extension.")
 
         if json:
             click.echo(js.dumps({

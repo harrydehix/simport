@@ -7,9 +7,13 @@ type SongSearchResult =
     | {
           success: true;
           results: {
+              /** The ID of the song. */
               id: number;
+              /** The name of the artist. */
               artistName: string;
+              /** The name of the track. */
               trackName: string;
+              /** The duration of the song in seconds. */
               duration: number;
           }[];
       }
@@ -18,11 +22,21 @@ type SongSearchResult =
           error: string;
       };
 
-export async function searchForSong(options: {
+type SongSearchOptions = {
+    /** A search query to find the song to import from `lrclib.net`. */
     query?: string;
+    /** The artist name to search for. Optional, ignored if `query` is provided. */
     artist?: string;
+    /** The track name to search for. Optional, ignored if `query` is provided. */
     title?: string;
-}): Promise<SongSearchResult> {
+};
+
+/**
+ * Searches for songs available on `lrclib.net` using either a general search query or specific artist and track name. Returns a list of matching songs with their IDs, artist names, track names and durations. The returned IDs can be used to import the song with the `importSong` function.
+ */
+export async function searchForSong(
+    options: SongSearchOptions,
+): Promise<SongSearchResult> {
     try {
         const args = ["search", "--json"];
         if (options.query) args.push("--query", options.query);
@@ -51,14 +65,28 @@ type SongImportResult =
           error: string;
       };
 
-export async function importSong(options: {
+type SongImportOptions = {
+    /** The ID of the song to import from `lrclib.net`. If not provided, the `query` option will be used to search for the song. */
     id?: number;
+    /** A search query to find the song to import from `lrclib.net`. Ignored if `id` is provided. */
     query?: string;
+    /** Path to the audio file to synchronize the lyrics to. */
     file: string;
+    /** Path to save the synchronized lyrics to. The output format is determined by the file extension, which can be either .srt, .vtt, .ass or .txt */
     output: string;
+    /** The language of the lyrics to import. Optional, default is `en`. */
     lang?: string;
+    /** Whether to import the raw line synchronized lyrics without word-level synchronization. */
     raw?: boolean;
-}): Promise<SongImportResult> {
+};
+
+/**
+ * Gets the lyrics of a song, that is available on `lrclib.net` and optionally synchronizes it to the passed audio file. The synchronization
+ * result is saved to the specified output file in either .srt, .vtt, .ass or .txt format.
+ */
+export async function importSong(
+    options: SongImportOptions,
+): Promise<SongImportResult> {
     try {
         const args = [
             "import",

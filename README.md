@@ -5,7 +5,7 @@ This is a submodule of [vibes](https://github.com/harrydehix/vibes/) that is res
 _Features_:
 
 - Transcribe audio files available on _lrclib_ on word level
-- Output formats: `.ass`, `.vtt`, `.srt`
+- Output formats: `.ass`, `.vtt`, `.srt`, `.txt` (ultrastar file format, without valid pitch and a fixed "bpm" of 1500)
 - `--json` output for machine readability and further processing
 
 ## Prerequisites

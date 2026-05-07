@@ -147,6 +147,54 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 final_line = line_text.strip()
                 f.write(f"Dialogue: 0,{ass_start},{ass_end},Karaoke,,0000,0000,0000,,{final_line}\n")
 
+    def save_to_ultrastar_file(self, file_path: str, artist: str = "Unknown", title: str = "Unknown", audio: str = "audio.mp3"):
+        """Saves the lyrics in the UltraStar TXT format."""
+        bpm = 1500
+        ms_per_beat = 10
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(f"#TITLE:{title}\n")
+            f.write(f"#ARTIST:{artist}\n")
+            f.write(f"#AUDIO:{audio}\n")
+            f.write(f"#BPM:{bpm}\n")
+            f.write(f"#GAP:0\n")
+            
+            for seg in self.segments:
+                start_time = seg.get('start', 0.0)
+                
+                # Zuerst prüfen ob wir Wort-Timings haben
+                if "words" not in seg or not seg["words"]:
+                    start_ms = int(seg.get('start', 0.0) * 1000)
+                    end_ms = int(seg.get('end', 0.0) * 1000)
+                    start_beat = start_ms // ms_per_beat
+                    dur_beat = max(1, (end_ms - start_ms) // ms_per_beat)
+                    text = seg.get('text', '').strip()
+                    
+                    # ":" steht für normale Noten, gefolgt von StartBeat, Länge, Tonhöhe(0), und Text
+                    f.write(f": {start_beat} {dur_beat} 0 {text}\n")
+                    f.write(f"- {start_beat + dur_beat}\n")
+                    continue
+                
+                for word_obj in seg["words"]:
+                    if "start" not in word_obj or "end" not in word_obj:
+                        continue
+                        
+                    w_start_ms = int(word_obj["start"] * 1000)
+                    w_end_ms = int(word_obj["end"] * 1000)
+                    
+                    start_beat = w_start_ms // ms_per_beat
+                    dur_beat = max(1, (w_end_ms - w_start_ms) // ms_per_beat)
+                    word = word_obj["word"].strip()
+                    
+                    f.write(f": {start_beat} {dur_beat} 0 {word} \n")
+                
+                # End of segment is marked by a "-"
+                end_ms = int(seg.get('end', 0.0) * 1000)
+                break_beat = end_ms // ms_per_beat
+                f.write(f"- {break_beat}\n")
+                
+            f.write("E\n")
+
 
 def align(lyrics: Lyrics, audio_file: str, language_code: str = "en") -> AlignmentResult:
     """Aligns the lyrics with the audio file word by word."""
