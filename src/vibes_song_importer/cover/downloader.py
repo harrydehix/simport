@@ -10,8 +10,6 @@ def download_cover(artist: str, title: str, album: str, output_dir: str) -> str 
     
     # Try different search combinations in order of precision
     queries = []
-    if album:
-        queries.append(f"{artist} {album}")
     queries.append(f"{artist} {title}")
     
     cover_url = None

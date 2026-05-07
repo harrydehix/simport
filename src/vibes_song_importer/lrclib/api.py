@@ -200,6 +200,7 @@ class LRCLibClient:
             # remove everything in parentheses to improve search results (e.g. "Song Title (feat. Artist)" -> "Song Title")
             clean_q = re.sub(r'\s*\([^)]*\)', '', q).strip()
             clean_q = re.sub(r'\s*\[[^]]*\]', '', clean_q).strip()
+
             
             if "-" in clean_q:
                 possible_artist_name, possible_track_name = map(str.strip, clean_q.split("-", 1))
