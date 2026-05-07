@@ -287,6 +287,7 @@ async function ensurePyTorch(projectRoot: string): Promise<void> {
  */
 export async function ensureSimportInstalled(
     userDataPath?: string,
+    forceReinstall = false,
 ): Promise<void> {
     let appDataPath = userDataPath;
 
@@ -352,20 +353,20 @@ export async function ensureSimportInstalled(
         await ensureFfmpeg(appDataPath);
         await ensureUv();
 
-        // Ensure pyproject is synced and PyTorch applies correctly
-        await ensurePyTorch(projectRoot);
-
         // 2. Check if simport is already installed via uv
-        if (await isCommandAvailable("simport")) {
+        if ((await isCommandAvailable("simport")) && !forceReinstall) {
             console.log("✅ simport CLI is already installed.");
             // Optionally run an update here, e.g., uv tool upgrade simport
             return;
         }
 
+        // Ensure pyproject is synced and PyTorch applies correctly
+        await ensurePyTorch(projectRoot);
+
         console.log("🔄 Installing simport via uv tool...");
 
         // 3. Install the tool using uv in editable mode
-        const installCmd = `uv tool install --python 3.12 --editable "${projectRoot}"`;
+        const installCmd = `uv tool install --python 3.12 --editable . --reinstall`;
         const { stdout, stderr } = await execAsync(installCmd, {
             cwd: projectRoot,
         });

@@ -4,7 +4,7 @@ import {
     searchForSong,
 } from "./dist/index.js";
 
-await ensureSimportInstalled();
+await ensureSimportInstalled("./appdata", true);
 
 console.log(await searchForSong({ query: "Bohemian Rhapsody" }));
 console.log(

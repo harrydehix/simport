@@ -5,11 +5,8 @@ import json as js
 
 # Set up specific FFmpeg installation path based on the OS
 home = Path.home()
-if os.name == 'nt':
-    appdata = os.environ.get('APPDATA')
-    ffmpeg_bin = os.path.join(appdata, "vibes", "ffmpeg", "bin") if appdata else None
-elif sys.platform == 'darwin':
-    ffmpeg_bin = os.path.join(home, "Library", "Application Support", "vibes", "ffmpeg", "bin")
+if os.name == 'nt' or sys.platform == 'darwin':  # Windows or macOS
+    ffmpeg_bin = str(Path(__file__).parent.parent.parent.parent.parent / "ffmpeg" / "bin")
 else: # linux
     ffmpeg_bin = "ffmpeg"  # Assume ffmpeg is in PATH on Linux
 
