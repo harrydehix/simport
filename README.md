@@ -1,6 +1,6 @@
 # AI based song import for vibes
 
-This is a submodule of [vibes](github.com/harrydehix/vibes/) that is responsible for transcribing audio files based on [lrclib.net](lrclib.net) timings and optimizing and refining them on word level using demucs and whisperx. It is still in development.
+This is a submodule of [vibes](https://github.com/harrydehix/vibes/) that is responsible for transcribing audio files based on [lrclib.net](https://lrclib.net) timings and optimizing and refining them on word level using demucs and whisperx. It is still in development.
 
 _Features_:
 
