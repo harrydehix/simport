@@ -37,8 +37,10 @@ _Response_:
 This will import the song with the given ID and transcribe it using the provided audio file. The audio file should be in a format supported by ffmpeg (e.g., mp3, wav, etc.).
 
 ```bash
-simport import --id <ID> --file <Path to audio file> --output <Path to output file>
+simport import --id <ID> --file <Path to audio file> --output <Path to output file> [--lang <Language for transcription (default: en)>]
 ```
+
+Setting `--lang` to the original language is no guarantee for better results, but it can help in some cases.
 
 _Response_:
 
@@ -57,8 +59,10 @@ Finished! Output saved to <Path to output file>
 This will search for songs matching the provided query and import the first result. The audio file should be in a format supported by ffmpeg (e.g., mp3, wav, etc.).
 
 ```bash
-simport import --query "Any query" --file <Path to audio file> --output <Path to output file>
+simport import --query "Any query" --file <Path to audio file> --output <Path to output file> [--lang <Language for transcription (default: en)>]
 ```
+
+Setting `--lang` to the original language is no guarantee for better results, but it can help in some cases.
 
 _Response_:
 

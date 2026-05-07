@@ -64,7 +64,8 @@ def search(artist: str, title: str, query: str):
 @click.option("--query", help="Any query to search for the song")
 @click.option("--file", required=True, type=click.Path(exists=True, dir_okay=False), help="Path to audio file")
 @click.option("--output", required=True, type=click.Path(dir_okay=False, writable=True), help="Path to output file")
-def import_song(lyrics_id: int, query: str, file: str, output: str):
+@click.option("--lang", default="en", help="Language for transcription (default: en)")
+def import_song(lyrics_id: int, query: str, file: str, output: str, lang: str):
     """Import a song and transcribe/align its lyrics."""
     if not lyrics_id and not query:
         click.secho("Error: You must provide either --id or --query.", fg="red")
@@ -103,7 +104,7 @@ def import_song(lyrics_id: int, query: str, file: str, output: str):
         vocals_path = remove_music(file)
 
         click.secho("Transcribing audio...", fg="cyan")
-        result = align(lyrics, vocals_path)
+        result = align(lyrics, vocals_path, language_code=lang)
         
         if output.lower().endswith(".srt"):
             result.save_to_srt_file(output)
