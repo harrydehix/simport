@@ -6,6 +6,7 @@ _Features_:
 
 - Transcribe audio files available on _lrclib_ on word level
 - Output formats: `.ass`, `.vtt`, `.srt`
+- `--json` output for machine readability and further processing
 
 ## Prerequisites
 
@@ -21,7 +22,7 @@ Execute `./install.bat` to install the CLI tool `simport` After that, you can us
 ### Just searching for available lyrics (lrclib)
 
 ```bash
-simport search [--artist "Artist Name"] [--title "Song Title"] [--query "Optional search query"]
+simport search [--artist "Artist Name"] [--title "Song Title"] [--query "Optional search query"] [--json]
 ```
 
 _Response_:
@@ -37,7 +38,7 @@ _Response_:
 This will import the song with the given ID and transcribe it using the provided audio file. The audio file should be in a format supported by ffmpeg (e.g., mp3, wav, etc.).
 
 ```bash
-simport import --id <ID> --file <Path to audio file> --output <Path to output file> [--lang <Language for transcription (default: en)>]
+simport import --id <ID> --file <Path to audio file> --output <Path to output file> [--lang <Language for transcription (default: en)>] [--raw] [--json]
 ```
 
 Setting `--lang` to the original language is no guarantee for better results, but it can help in some cases.
@@ -59,7 +60,7 @@ Finished! Output saved to <Path to output file>
 This will search for songs matching the provided query and import the first result. The audio file should be in a format supported by ffmpeg (e.g., mp3, wav, etc.).
 
 ```bash
-simport import --query "Any query" --file <Path to audio file> --output <Path to output file> [--lang <Language for transcription (default: en)>]
+simport import --query "Any query" --file <Path to audio file> --output <Path to output file> [--lang <Language for transcription (default: en)>] [--raw] [--json]
 ```
 
 Setting `--lang` to the original language is no guarantee for better results, but it can help in some cases.

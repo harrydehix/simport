@@ -1,0 +1,23 @@
+{
+    "name": "simport",
+    "version": "1.0.0",
+    "description": "Library for installing and utilizing the simport library from a node environment.",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "test": "tsc && node test.ts"
+    },
+    "keywords": [
+        "vibes",
+        "simport",
+        "installer"
+    ],
+    "author": "harrydehix",
+    "license": "GPL-3.0-only",
+    "devDependencies": {
+        "@types/node": "^20.19.39",
+        "typescript": "^5.0.0"
+    }
+}
