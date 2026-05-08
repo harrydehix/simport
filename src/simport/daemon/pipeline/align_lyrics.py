@@ -2,6 +2,7 @@ from simport.daemon.pipeline.lrclib_api import Lyrics
 import whisperx
 import torch
 import math
+import re
 import logging
 import contextlib
 import io
@@ -9,6 +10,63 @@ from simport.daemon.pipeline.types import SegmentData
 from simport.logger import LoggerWriter
 
 logger = logging.getLogger(__name__)
+
+# Matches a hyphen between two word characters (letters/digits), e.g. "Trinity-Arm"
+# but not leading/trailing hyphens or double-hyphens.
+_HYPHEN_BETWEEN_WORDS_RE = re.compile(r'(?<=\w)-(?=\w)')
+
+
+def _split_hyphenated_words(segments: list[SegmentData]) -> list[str]:
+    """
+    Replaces hyphens between word characters with spaces so WhisperX aligns each part
+    as its own word. Returns the list of original texts so they can be restored later.
+    """
+    originals: list[str] = []
+    for seg in segments:
+        original = seg.get("text", "")
+        originals.append(original)
+        seg["text"] = _HYPHEN_BETWEEN_WORDS_RE.sub(" ", original)
+    return originals
+
+
+def _mark_hyphenated_words(result_segments: list[dict], original_texts: list[str]) -> None:
+    """
+    Restores hyphens on word entries that were split for alignment. Each hyphenated
+    word stays as multiple separate word entries (each with its own timing), but:
+      - all parts except the last get a trailing '-' appended to their `word`,
+      - all parts except the last are flagged with `joined_to_next=True` so output
+        formats know not to insert a space between this word and the next one.
+    The segment-level text is restored to the original (with hyphens).
+    """
+    for seg, original_text in zip(result_segments, original_texts):
+        seg["text"] = original_text
+
+        words = seg.get("words")
+        if not words:
+            continue
+
+        # Walk the original text group-by-group (whitespace separated). Each group
+        # consumes (hyphen-count + 1) word entries from the alignment result.
+        groups = original_text.split()
+        idx = 0
+
+        for group in groups:
+            if "-" not in group:
+                idx += 1
+                continue
+
+            n_parts = group.count("-") + 1
+            if idx >= len(words):
+                break
+
+            chunk = words[idx:idx + n_parts]
+            idx += len(chunk)
+
+            # Mark every part except the last as joined-without-space, and append
+            # the hyphen back onto its visible text.
+            for w in chunk[:-1]:
+                w["word"] = f"{w.get('word', '').rstrip()}-"
+                w["joined_to_next"] = True
 
 class AlignmentResult:
     """Represents the result of the alignment process."""
@@ -49,20 +107,26 @@ class AlignmentResult:
                 
                 # Prüfen, ob wir detaillierte Wort-Informationen von WhisperX haben
                 if "words" in seg:
-                    line_parts = []
+                    formatted_line = ""
+                    prev_joined = False
                     for word_obj in seg["words"]:
                         word_text = word_obj.get("word", "").strip()
                         if not word_text:
                             continue
-                        
+
                         if "start" in word_obj:
                             word_time = self._format_time(word_obj["start"], separator=".")
-                            line_parts.append(f"{word_text}<{word_time}>")
+                            piece = f"{word_text}<{word_time}>"
                         else:
                             # Fallback: Wort konnte nicht gematcht werden
-                            line_parts.append(word_text)
-                    
-                    formatted_line = " ".join(line_parts)
+                            piece = word_text
+
+                        # No space between hyphen-joined parts (e.g. "Trinity-" + "Arm").
+                        if formatted_line and not prev_joined:
+                            formatted_line += " "
+                        formatted_line += piece
+                        prev_joined = bool(word_obj.get("joined_to_next"))
+
                     f.write(f"{formatted_line}\n\n")
                 else:
                     # Fallback auf reinen Zeilentext, falls keine Wörter erkannt wurden
@@ -142,7 +206,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     dur_cs = int(round((w_end - w_start) * 100))
                     
                     # \kf sorgt für den weichen, flüssigen Farbeffekt (wie bei echter Karaoke)
-                    line_text += f"{{\\kf{dur_cs}}}{word} "
+                    # No trailing space if this word is hyphen-joined to the next part.
+                    trailing = "" if word_obj.get("joined_to_next") else " "
+                    line_text += f"{{\\kf{dur_cs}}}{word}{trailing}"
                     
                     current_time = w_end
                     
@@ -193,8 +259,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     start_beat = w_start_ms // ms_per_beat
                     dur_beat = max(1, (w_end_ms - w_start_ms) // ms_per_beat)
                     word = word_obj.get("word", "").strip()
-                    
-                    f.write(f": {start_beat} {dur_beat} 0 {word} \n")
+
+                    # Trailing space separates notes visually in UltraStar; omit it for
+                    # hyphen-joined parts so e.g. "Trinity-" + "Arm" render as one word.
+                    trailing = "" if word_obj.get("joined_to_next") else " "
+                    f.write(f": {start_beat} {dur_beat} 0 {word}{trailing}\n")
                 
                 # End of segment is marked by a "-"
                 end_ms = int(seg.get('end', 0.0) * 1000)
@@ -216,6 +285,13 @@ def align_lyrics(lyrics: Lyrics, audio_file: str, language_code: str = "en", off
     
     for seg in whisperx_segments:
         seg["text"] = seg.get("text", "").strip()
+
+    # Split hyphenated words (e.g. "Trinity-Arm" -> "Trinity Arm") IN-PLACE on
+    # whisperx_segments, so the segments passed to whisperx.align() below already
+    # contain the split form. After alignment, _mark_hyphenated_words() restores the
+    # hyphens on the resulting word entries (using `original_texts` as reference)
+    # and flags the leading parts so output formats join them without a space.
+    original_texts = _split_hyphenated_words(whisperx_segments)
 
     audio = whisperx.load_audio(audio_file)
 
@@ -273,5 +349,7 @@ def align_lyrics(lyrics: Lyrics, audio_file: str, language_code: str = "en", off
             device, 
             return_char_alignments=True
         )
+
+    _mark_hyphenated_words(result["segments"], original_texts)
 
     return AlignmentResult(segments=result["segments"])
