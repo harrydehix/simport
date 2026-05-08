@@ -1,10 +1,10 @@
 # API Documentation
 
-Welcome to the beta API documentation and specification of the LRCLIB's API! Although we intend to maintain backward compatibility, please be aware that there may be breaking changes in future updates. Since this document is still in its early stages, it may lack information or contain inaccuracies in certain sections.
+Welcome to the beta API documentation and specification of the lrclib.net's API! Although we intend to maintain backward compatibility, please be aware that there may be breaking changes in future updates. Since this document is still in its early stages, it may lack information or contain inaccuracies in certain sections.
 
 This API has no rate limiting in place and is openly accessible to all users and applications. There is no need for an API key or any kind of registering!
 
-While this is not mandatory, if you are developing an application to interact with LRCLIB, we encourage you to include the User-Agent header in your requests, specifying your application's name, version, and a link to its homepage or project page. For example: LRCGET v0.2.0 (https://github.com/tranxuanthang/lrcget).
+While this is not mandatory, if you are developing an application to interact with lrclib.net, we encourage you to include the User-Agent header in your requests, specifying your application's name, version, and a link to its homepage or project page. For example: LRCGET v0.2.0 (https://github.com/tranxuanthang/lrcget).
 
 ## `GET/api/get` - Get lyrics with a track's signature
 
@@ -12,7 +12,7 @@ Attempt to find the best match of lyrics for the track. You must provide the exa
 
 Each time you request a new track's signature, this API will attempt to access external sources in case the lyrics are not found in the internal database. Therefore, the response time will vary significantly. If you prefer to avoid this behavior, please use the /api/get-cached API instead.
 
-_Note: The provided duration is crucial. LRCLIB will attempt to provide the lyrics only when the duration matches the record in LRCLIB's database, or at least with a difference of ±2 seconds in duration._
+_Note: The provided duration is crucial. lrclib.net will attempt to provide the lyrics only when the duration matches the record in lrclib.net's database, or at least with a difference of ±2 seconds in duration._
 
 ### Query parameters
 
@@ -131,7 +131,7 @@ GET /api/get-cached?artist_name=Jeremy+Soule&track_name=Dragonborn&album_name=Th
 
 Please see the /api/get's example response.
 
-## `GET /api/get/{id}` Get lyrics by LRCLIB's ID
+## `GET /api/get/{id}` Get lyrics by lrclib.net's ID
 
 Get a lyrics record by an absolute ID. ID of a lyrics record can be retrieved from other APIs, such as /api/search API.
 
@@ -225,7 +225,7 @@ JSON array of the lyrics records with the following parameters: `id`, `trackName
 
 _Note: This API is experimental and subject to potential changes in the future._
 
-Publish a new lyrics to LRCLIB database. This API can be called anonymously, and no registration is required.
+Publish a new lyrics to lrclib.net database. This API can be called anonymously, and no registration is required.
 
 If BOTH plain lyrics and synchronized lyrics are left empty, the track will be marked as instrumental.
 
@@ -322,7 +322,7 @@ _Note: This API is experimental and subject to potential changes in the future._
 
 Generate a pair of prefix and target strings for the cryptographic challenge. Each challenge has an expiration time of 5 minutes.
 
-The challenge's solution is a nonce, which can be used to create a Publish Token for submitting lyrics to LRCLIB.
+The challenge's solution is a nonce, which can be used to create a Publish Token for submitting lyrics to lrclib.net.
 
 ### Example response
 

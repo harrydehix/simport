@@ -1,7 +1,7 @@
 [project]
-name = "vibes_song_importer"
+name = "simport"
 version = "0.1.0"
-description = "Add your description here"
+description = "Tool to import songs to ultrastar/vibes using base lyric timings from lrclib.net and demucs/whisperx word level refinement."
 readme = "README.md"
 requires-python = "==3.12.*"
 dependencies = [
@@ -12,10 +12,12 @@ dependencies = [
     "soundfile>=0.13.1",
     "yt-dlp>=2025.1.26",
     "google-genai>=1.75.0",
+    "python-socketio>=5.16.1",
+    "websocket-client>=1.9.0",
 ]
 
 [project.scripts]
-simport = "vibes_song_importer.cli.cli:main"
+simport = "simport.cli.cli:main"
 
 [build-system]
 requires = ["hatchling"]

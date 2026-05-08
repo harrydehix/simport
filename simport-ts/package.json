@@ -1,0 +1,25 @@
+{
+    "name": "simport-ts",
+    "version": "1.0.0",
+    "description": "Client for the SImport daemon, implemented in TypeScript",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "type": "module",
+    "scripts": {
+        "build": "tsc"
+    },
+    "keywords": [
+        "vibes",
+        "simport",
+        "typescript"
+    ],
+    "author": "harrydehix",
+    "license": "GPL-3.0-only",
+    "devDependencies": {
+        "@types/node": "^20.19.39",
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "socket.io-client": "^4.8.3"
+    }
+}
