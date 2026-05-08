@@ -25,15 +25,18 @@ def take_first_result_with_synced_lyrics(results):
             return result
     return None
 
-def get_appdata_dir() -> Path:
+def get_song_output_dir(vibes_integration: bool) -> Path:
     """Returns the platform-specific appdata directory for vibes."""
-    home = Path.home()
-    if os.name == 'nt':
-        return Path(os.environ.get('APPDATA', home / 'AppData' / 'Roaming')) / 'vibes'
-    elif sys.platform == 'darwin':
-        return home / 'Library' / 'Application Support' / 'vibes'
+    if vibes_integration:
+        home = Path.home()
+        if os.name == 'nt':
+            return Path(os.environ.get('APPDATA', home / 'AppData' / 'Roaming')) / 'vibes' / 'songs'
+        elif sys.platform == 'darwin':
+            return home / 'Library' / 'Application Support' / 'vibes' / 'songs'
+        else:
+            return home / '.local' / 'share' / 'vibes' / 'songs'
     else:
-        return home / '.local' / 'share' / 'vibes'
+        return Path.cwd() / 'output'
 
 @click.group()
 def cli():
@@ -140,20 +143,18 @@ def transcribe(lyrics_id: int, query: str, file: str, output: str, lang: str, ra
 @cli.command(name="vimport")
 @click.option("--youtube", required=True, help="YouTube video link")
 @click.option("--output", required=False, help="Output directory")
-@click.option("--raw", is_flag=True, help="Skip alignment and just use the original timings from lrclib.net")
+@click.option("--raw", is_flag=True, help="Skip AI based alignment and just use the original timings from lrclib.net (default: disabled)")
 @click.option("--lang", required=False, help="Language code")
-@click.option("--infer-lang", is_flag=True, default=False, help="Automatically infer language")
-@click.option("--offset-fix/--no-offset-fix", default=True, help="Automatically fix offset")
+@click.option("--infer-lang", is_flag=True, default=False, help="Automatically infer language (default: disabled)")
+@click.option("--offset-fix/--no-offset-fix", default=True, help="Automatically fix offset (default: enabled)")
+@click.option("--vibes-integration/--no-vibes-integration", default=True, help="Use vibes-specific output directory (default: enabled)")
 @click.option("--gemini-api-key", envvar="GEMINI_API_KEY", required=False, help="Google Gemini API key")
-def vimport(youtube: str, output: str, raw: bool, lang: str | None, infer_lang: bool, offset_fix: bool, gemini_api_key: str | None):
+def vimport(youtube: str, output: str, raw: bool, lang: str | None, infer_lang: bool, offset_fix: bool, vibes_integration: bool, gemini_api_key: str | None):
     """Import a song via the Socket.IO Daemon."""
     sio = socketio.SimpleClient()
     
     if not output:
-        # Fallback to appdata directory if no explicit output given to preserve old behaviour structure
-        import uuid
-        safe_title = f"youtube_import_{uuid.uuid4().hex[:8]}"
-        output = str(get_appdata_dir() / 'songs' / safe_title)
+        output = str(get_song_output_dir(vibes_integration=vibes_integration))
 
     abs_output = str(Path(output).absolute())
 

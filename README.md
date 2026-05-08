@@ -110,7 +110,7 @@ Finished! Output saved to D:\Code\vibes-ai-based-import\test.txt
 This will extract the audio and video from the provided youtube link, search for the song on lrclib.net using the video title, refine the line timings on word level using demucs and whisperx and finally save the results to the given output directory. This will also automatically fetch a cover image for the song and save it to the output directory.
 
 ```bash
-simport vimport --youtube <YouTube video link> [--output <Path to output directory>] [--lang <Language for transcription (default: en)>] [--raw] [--gemini-api-key <API key for Google Gemini API>] [--offset-fix/--no-offset-fix]
+simport vimport --youtube <YouTube video link> [--output <Path to output directory>] [--lang <Language for transcription (default: en)>] [--raw] [--gemini-api-key <API key for Google Gemini API>] [--offset-fix/--no-offset-fix] [--vibes-integration/--no-vibes-integration]
 ```
 
 _Note_: The optional gemini api key can also be set via GEMINI_API_KEY environment variable and is used to extract song info from YouTube title. This can be helpful if the video title does not match the song name and artist name, which can lead to better search results on lrclib.net and therefore better transcriptions. Create an api key [here](https://ai.google.dev/gemini-api/docs/api-key).
